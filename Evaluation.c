@@ -138,6 +138,8 @@ void remoteAdd(char *machine)
 	
 	remShellTab[indice] = remf;
 	pcName[indice++] = machine;
+
+	printf("%s | %d\n", pcName[indice - 1], indice - 1);
 }
 
 int remoteListe()
@@ -156,11 +158,39 @@ int remoteListe()
 
 int remoteCmd(char *host, char * cmd)
 {
+	/*int i;
+	for(i = 0; i < indice; i++)	
+	{
+		if(strcmp(pcName[i], host) == 0)
+		{
+			//printf("trouvé : %s\n", pcName[i]);
+			char test[30];
+			sprintf(test, "%s > test.txt", cmd);
+			fprintf(remShellTab[i], test);
+		}
+	}*/
+
+	// code qui fonctionne mais qui n'est surement pas correct
 	if(!fork())		
 	{
 		execlp("ssh", "ssh", host, cmd, NULL);
 		return -1;
 	}
+	else
+		wait(NULL);
+
+	return 0;
+}
+
+int remoteRemove()
+{	
+	if(!fork())		
+	{
+		//execlp("ssh", "ssh", host, "exit", NULL);
+		return -1;
+	}
+	else
+		wait(NULL);
 
 	return 0;
 }
@@ -175,7 +205,6 @@ void executer_simple(Expression *e, int bg)
 		hostname2();
 	else if(strcmp(e->arguments[0], "echo") == 0)
 	{
-		//printf("echo2 %s\n", e->arguments[1]);
 		echo2(e->arguments[1]);			
 	}
 	else if(strcmp(e->arguments[0], "date") == 0)
@@ -184,6 +213,22 @@ void executer_simple(Expression *e, int bg)
 		history2();
 	else if(strcmp(e->arguments[0], "cd") == 0)
 		cd2(e->arguments[1]);
+	/*else if(strcmp(e->arguments[0], "remote") == 0)
+	{		
+		if(strcmp(e->arguments[1], "list") == 0)
+		{
+			if(remoteListe())
+				printf("Erreur, aucune machine connecté en ssh\n");
+			printf("test\n");
+		}
+		else if(strcmp(e->arguments[1], "add") == 0)			
+			remoteAdd(e->arguments[2]);
+		else if(strcmp(e->arguments[1], "remove") == 0)
+			remoteRemove();
+			
+		else
+			remoteCmd(e->arguments[1], e->arguments[2]);
+	}*/
 	else if(strcmp(e->arguments[0], "remote") == 0)
 		remoteAdd("infini1");
 	else if(strcmp(e->arguments[0], "liste") == 0)
@@ -201,6 +246,10 @@ void executer_simple(Expression *e, int bg)
 		else
 			printf("Erreur, vous n'êtes connecté à aucune machine distante\n");
 	}
+	else if(strcmp(e->arguments[0], "remove") == 0)
+	{
+		remoteRemove();
+	}
 	else
 	{	
 		int pid = fork();
@@ -214,6 +263,8 @@ void executer_simple(Expression *e, int bg)
 			printf("Erreur\n");
 	}
 }
+
+// Pour rendre le code plus propre à rajouter une fois que les fonctions seront terminées
 
 
 int evaluer_expr(Expression *e)
