@@ -371,7 +371,7 @@ int redirect_eo(Expression *e)
     }        
 }
 
-int pipe (Expression *e)
+int pipe_expr (Expression *e)
 {
     int pid,status;
     if ((pid = fork()) == 0)
@@ -387,8 +387,8 @@ int pipe (Expression *e)
         }
         else
         {
-            close(tube[1])
-            if ((pid_2 = fork()) = 0)
+            close(tube[1]);
+            if ((pid_2 = fork()) == 0)
             {
                 dup2(tube[0], STDIN_FILENO);
                 close(tube[0]);
@@ -465,10 +465,10 @@ int evaluer_expr(Expression *e)
   case REDIRECTION_E: return redirect_e(e);	
   case REDIRECTION_EO : return redirect_eo(e);
     break;
-  case PIPE: return pipe(e);
-  case SEQUENCE:
-  case SEQUENCE_ET:
-  case SEQUENCE_OU:
+  case PIPE: return pipe_expr(e);
+  case SEQUENCE: return sequence(e);
+  case SEQUENCE_ET: return sequence_and(e);
+  case SEQUENCE_OU: return sequence_or(e);
   default :
 	break;
   }
