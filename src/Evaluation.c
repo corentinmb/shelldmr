@@ -150,7 +150,11 @@ int remoteAdd(char *machine)
 	{
 		dup2(tab_shell[indice].tube_in[0], 0);	
 		dup2(tab_shell[indice].tube_out[1], 1);
-		execlp("ssh", "ssh", machine, "bash", NULL);
+		
+		char buf[256];
+		getcwd(buf, sizeof(buf));
+		sprintf(buf, "%s/./Shell", buf);
+		execlp("ssh", "ssh", machine, buf, NULL);
 		return -1;
 	}
 	
@@ -181,6 +185,7 @@ int remoteListe()
 
 int remoteCmd(char *host, char * cmd)
 {
+
 	int i, found = 0;
 	for(i = 0; i < indice; i++)	
 	{
@@ -201,6 +206,7 @@ int remoteCmd(char *host, char * cmd)
 
 int remoteRemove()
 {	
+
 	int i, test;
 	for(i = 0; i < indice; i++)
 	{
@@ -459,6 +465,7 @@ int evaluer_expr(Expression *e)
   	return evaluer_expr(e->gauche);
     break;
 
+// case SOUS_SHELL : return exec_sous_shell(e);
   case REDIRECTION_I: return redirect_i(e);	
   case REDIRECTION_O: return redirect_o(e);	
   case REDIRECTION_A: return redirect_a(e);	
