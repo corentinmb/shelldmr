@@ -70,7 +70,7 @@ int hostname2()
 
 // problème lors de l'input utilisateur, les "" ou '' sont enlevé par le code du prof
 
-void echo2(char *buf)
+int echo2(char *buf)
 {
 	if( ( buf[0] == '"'  && buf[strlen(buf) - 1] == '"' ) || ( buf[0] == '\'' && buf[strlen(buf) - 1] == '"' ) )
 	{
@@ -82,9 +82,10 @@ void echo2(char *buf)
 	{
 		printf("%s\n", buf);
 	}
+	return 0;
 }
 
-void date2()
+int date2()
 {
 	char *tabDays[] = {"dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"};
 	char *tabMonths[] = {"janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "otobre", "novembre", "décembre"};
@@ -112,9 +113,10 @@ void date2()
 		sprintf(sec, "%d", tm.tm_sec);	
 	
 	printf("%s %d %s %d, %s:%s:%s (UTC+0100)\n", tabDays[tm.tm_wday], tm.tm_mday, tabMonths[tm.tm_mon], tm.tm_year + 1900, hour, min, sec);
+    return 0;
 }
 
-void history2()
+int history2()
 {
 	using_history();
 	HISTORY_STATE *histoState = history_get_history_state();	
@@ -122,6 +124,7 @@ void history2()
 	int i;
 	for(i = 0; i < histoState->length; i++)
 		printf("%d %s\n", i, (*(histoState->entries + i))->line);
+    return 0;
 }
 
 int cd2(char *path)
@@ -198,60 +201,162 @@ int remoteRemove()
 	return 0;
 }
 
-void executer_simple(Expression *e, int bg)
+int executer_simple(Expression *e, int bg)
 {
 	if(strcmp(e->arguments[0], "exit") == 0)
 		exit2();
 	else if(strcmp(e->arguments[0], "pwd") == 0)
-		pwd2();
+		return pwd2();
 	else if(strcmp(e->arguments[0], "hostname") == 0)
-		hostname2();
+		return hostname2();
 	else if(strcmp(e->arguments[0], "echo") == 0)
 	{
-		echo2(e->arguments[1]);			
+		return echo2(e->arguments[1]);			
 	}
 	else if(strcmp(e->arguments[0], "date") == 0)
-		date2();
+		return date2();
 	else if(strcmp(e->arguments[0], "history") == 0)
-		history2();
+		return history2();
 	else if(strcmp(e->arguments[0], "cd") == 0)
-		cd2(e->arguments[1]);
+		return cd2(e->arguments[1]);
 	else if(strcmp(e->arguments[0], "remote") == 0)
 	{		
 		if(strcmp(e->arguments[1], "list") == 0)
 		{
 			if(remoteListe())
 				printf("Erreur, aucune machine connecté en ssh\n");
+				return 1;
 		}
 		else if(strcmp(e->arguments[1], "add") == 0)		
 		{	
 			if(remoteAdd(e->arguments[2]))
 				printf("Erreur, impossible de se connecter\n");
+				return 2;
 		}
 		else if(strcmp(e->arguments[1], "remove") == 0)
-			remoteRemove();			
+			return remoteRemove();			
 		else
 		{
 			if(remoteCmd(e->arguments[1], e->arguments[2]))
 				printf("Erreur, hote ou commande invalide\n");
+				return 3;
 		}
 	}
 	else
 	{	
 		int pid = fork();
-
+        
 		if(pid == 0)
 			execvp(e->arguments[0], e->arguments);	
 		else if(pid > 0)
+		{
+		    int status;
 			if(!bg)
-				wait(NULL);
+			{
+				waitpid(pid, &status, 0);
+				return (WIFEXITED(status)? WEXITSTATUS(status) : -1);
+		    }
+		}
 		else
 			printf("Erreur\n");
+			return -1;
 	}
 }
 
-// Pour rendre le code plus propre à rajouter une fois que les fonctions seront terminées
 
+int redirect_i(Expression *e)
+{
+    int pid,status;
+    if ((pid = fork()) == 0)
+    {
+        int fd = open(e->arguments[0], O_RDONLY, 0666);
+        dup2(fd, STDIN_FILENO);
+        close(fd);
+        status = evaluer_expr(e->gauche);
+        exit(status);
+    }
+    else
+    {
+        waitpid(pid, &status, 0);
+        return (WIFEXITED(status) ? WEXITSTATUS(status) : -1);
+    }        
+}
+
+int redirect_o(Expression *e)
+{
+    int pid,status;
+    if ((pid = fork()) == 0)
+    {
+        int fd = open(e->arguments[0], O_WRONLY | O_CREAT | O_TRUNC, 0666);
+        dup2(fd, STDOUT_FILENO);
+        close(fd);
+        status = evaluer_expr(e->gauche);
+        exit(status);
+    }
+    else
+    {
+        waitpid(pid, &status, 0);
+        return (WIFEXITED(status) ? WEXITSTATUS(status) : -1);
+    }        
+}
+
+int redirect_a(Expression *e)
+{
+    int pid,status;
+    if ((pid = fork()) == 0)
+    {
+        int fd = open(e->arguments[0], O_WRONLY | O_CREAT | O_APPEND, 0666);
+        dup2(fd, STDOUT_FILENO);
+        close(fd);
+        status = evaluer_expr(e->gauche);
+        exit(status);
+    }
+    else
+    {
+        waitpid(pid, &status, 0);
+        return (WIFEXITED(status) ? WEXITSTATUS(status) : -1);
+    }        
+}
+
+int redirect_e(Expression *e)
+{
+    int pid,status;
+    if ((pid = fork()) == 0)
+    {
+        int fd = open(e->arguments[0], O_WRONLY | O_CREAT | O_TRUNC, 0666);
+        dup2(fd, STDERR_FILENO);
+        close(fd);
+        status = evaluer_expr(e->gauche);
+        exit(status);
+    }
+    else
+    {
+        waitpid(pid, &status, 0);
+        return (WIFEXITED(status) ? WEXITSTATUS(status) : -1);
+    }        
+}
+
+int redirect_eo(Expression *e)
+{
+    int pid,status;
+    if ((pid = fork()) == 0)
+    {
+        int fd = open(e->arguments[0], O_WRONLY | O_CREAT | O_TRUNC, 0666);
+        dup2(fd, STDERR_FILENO);
+        dup2(fd, STDOUT_FILENO);
+        close(fd);
+        status = evaluer_expr(e->gauche);
+        exit(status);
+    }
+    else
+    {
+        waitpid(pid, &status, 0);
+        return (WIFEXITED(status) ? WEXITSTATUS(status) : -1);
+    }        
+}
+
+
+// Pour rendre le code plus propre à rajouter une fois que les fonctions seront terminées
 
 int evaluer_expr(Expression *e)
 {
@@ -264,19 +369,19 @@ int evaluer_expr(Expression *e)
     break ;
     
   case SIMPLE :	
-	executer_simple(e, bg);
 	bg = 0;
-    break;
-
-  case REDIRECTION_I: 	
-  case REDIRECTION_O: 	
-  case REDIRECTION_A: 	
-  case REDIRECTION_E: 	
-  case REDIRECTION_EO :
-    break;
-  case BG:
+	return executer_simple(e, bg);
+	break;
+ case BG:
   	bg = 1;
-  	evaluer_expr(e->gauche);
+  	return evaluer_expr(e->gauche);
+    break;
+ 
+  case REDIRECTION_I: return redirect_i(e);	
+  case REDIRECTION_O: return redirect_o(e);	
+  case REDIRECTION_A: return redirect_a(e);	
+  case REDIRECTION_E: return redirect_e(e);	
+  case REDIRECTION_EO : return redirect_eo(e);
     break;
   default :
 	break;
