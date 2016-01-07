@@ -285,6 +285,9 @@ int executer_simple(Expression *e, int bg)
 	}
 }
 
+int exec_sous_shell(Expression *e){
+    return evaluer_expr(e->gauche);
+}
 
 int redirect_i(Expression *e)
 {
@@ -465,7 +468,7 @@ int evaluer_expr(Expression *e)
   	return evaluer_expr(e->gauche);
     break;
 
-// case SOUS_SHELL : return exec_sous_shell(e);
+  case SOUS_SHELL : return exec_sous_shell(e);
   case REDIRECTION_I: return redirect_i(e);	
   case REDIRECTION_O: return redirect_o(e);	
   case REDIRECTION_A: return redirect_a(e);	
