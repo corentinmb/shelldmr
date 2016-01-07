@@ -17,8 +17,10 @@ int indice = 0;
 
 struct distant_shell
 {
-	int tube[2];
+	int tube_in[2];
+	int tube_out[2];
 	char hostname[40];
+	int pid_local_shell;
 };
 
 struct distant_shell tab_shell[20];
@@ -138,13 +140,22 @@ int cd2(char *path)
 
 int remoteAdd(char *machine)
 {
-	pipe(tab_shell[indice].tube);
+	pipe(tab_shell[indice].tube_in);
+	pipe(tab_shell[indice].tube_out);
 	
 	if(!fork())
 	{
-		dup2(tab_shell[indice].tube[0], 0);	
+		dup2(tab_shell[indice].tube_in[0], 0);	
+		dup2(tab_shell[indice].tube_out[1], 1);
 		execlp("ssh", "ssh", machine, "bash", NULL);
 		return -1;
+	}
+	
+	if(!(tab_shell[indice].pid_local_shell = fork()))
+	{
+		dup2(tab_shell[indice].tube_out[0], 0);		
+		execlp("./xcat.sh", "./xcat.sh", NULL);
+		return -2;
 	}
 
 	strcpy(tab_shell[indice++].hostname, machine);
@@ -173,7 +184,8 @@ int remoteCmd(char *host, char * cmd)
 		if(strcmp(tab_shell[i].hostname, host) == 0)
 		{
 			sprintf(cmd, "%s\n", cmd);
-			write(tab_shell[i].tube[1], cmd, sizeof(cmd));
+			write(tab_shell[i].tube_in[1], cmd, sizeof(cmd));
+			write(tab_shell[i].tube_out[1], cmd, sizeof(cmd));	
 			found =  1;
 		}
 	}
@@ -186,12 +198,16 @@ int remoteCmd(char *host, char * cmd)
 
 int remoteRemove()
 {	
-	int i;
+	int i, test;
 	for(i = 0; i < indice; i++)
 	{
-		write(tab_shell[i].tube[1], "exit\n", sizeof("exit\n")); 
-		close(tab_shell[i].tube[1]);
-		close(tab_shell[i].tube[0]);
+		write(tab_shell[i].tube_in[1], "exit\n", sizeof("exit\n")); 
+		test = kill(tab_shell[i].pid_local_shell, SIGKILL);
+		close(tab_shell[i].tube_in[1]);
+		close(tab_shell[i].tube_in[0]);
+		close(tab_shell[i].tube_out[1]);
+		close(tab_shell[i].tube_out[0]);
+		printf("test : %d %d\n", test, tab_shell[i].pid_local_shell);
 	}
 		
 	indice = 0;	
@@ -258,7 +274,8 @@ int evaluer_expr(Expression *e)
 
   if (e == NULL) return 0;
 
-  switch(e->type){
+  switch(e->type)
+  {
 
   case VIDE :
     break ;
