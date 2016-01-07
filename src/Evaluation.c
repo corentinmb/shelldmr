@@ -13,10 +13,19 @@
 #include <readline/history.h>
 
 int bg = 0;
-
 int indice = 0;
-FILE *remShellTab[20];
-char *pcName[20];
+
+struct distant_shell
+{
+	int tube[2];
+	char hostname[40];
+};
+
+struct distant_shell tab_shell[20];
+
+// Fonctions internes
+
+
 
 void exit2()
 {
@@ -123,21 +132,23 @@ int cd2(char *path)
 		return 0;
 }
 
-void remoteAdd(char *machine)
+// Fin des fonction internes
+
+
+
+int remoteAdd(char *machine)
 {
-	char cmd[20];
-	sprintf(cmd, "ssh %s -p 22", machine);
+	pipe(tab_shell[indice].tube);
 	
-	FILE* remf = popen(cmd, "w");
-	
-	if(!remf)
+	if(!fork())
 	{
-		perror("popen ssh failed");
-		exit(EXIT_FAILURE);
+		dup2(tab_shell[indice].tube[0], 0);	
+		execlp("ssh", "ssh", machine, "bash", NULL);
+		return -1;
 	}
-	
-	remShellTab[indice] = remf;
-	pcName[indice++] = machine;
+
+	strcpy(tab_shell[indice++].hostname, machine);
+	return 0;
 }
 
 int remoteListe()
@@ -146,7 +157,7 @@ int remoteListe()
 	{
 		int i;
 		for(i = 0; i < indice; i++)
-			printf("%s\n", pcName[i]);
+			printf("%s\n", tab_shell[i].hostname);
 
 		return 0;
 	}
@@ -156,12 +167,34 @@ int remoteListe()
 
 int remoteCmd(char *host, char * cmd)
 {
-	if(!fork())		
+	int i, found = 0;
+	for(i = 0; i < indice; i++)	
 	{
-		execlp("ssh", "ssh", host, cmd, NULL);
-		return -1;
+		if(strcmp(tab_shell[i].hostname, host) == 0)
+		{
+			sprintf(cmd, "%s\n", cmd);
+			write(tab_shell[i].tube[1], cmd, sizeof(cmd));
+			found =  1;
+		}
 	}
+	
+	if(!found)
+		printf("Erreur machine invalide\n");
+	
+	return 0;
+}
 
+int remoteRemove()
+{	
+	int i;
+	for(i = 0; i < indice; i++)
+	{
+		write(tab_shell[i].tube[1], "exit\n", sizeof("exit\n")); 
+		close(tab_shell[i].tube[1]);
+		close(tab_shell[i].tube[0]);
+	}
+		
+	indice = 0;	
 	return 0;
 }
 
@@ -175,7 +208,6 @@ void executer_simple(Expression *e, int bg)
 		hostname2();
 	else if(strcmp(e->arguments[0], "echo") == 0)
 	{
-		//printf("echo2 %s\n", e->arguments[1]);
 		echo2(e->arguments[1]);			
 	}
 	else if(strcmp(e->arguments[0], "date") == 0)
@@ -185,21 +217,24 @@ void executer_simple(Expression *e, int bg)
 	else if(strcmp(e->arguments[0], "cd") == 0)
 		cd2(e->arguments[1]);
 	else if(strcmp(e->arguments[0], "remote") == 0)
-		remoteAdd("infini1");
-	else if(strcmp(e->arguments[0], "liste") == 0)
-	{
-		if(remoteListe())
-			printf("Erreur, aucune machine connecté en ssh\n");
-	}
-	else if(strcmp(e->arguments[0], "cmd") == 0)
-	{
-		if(indice != 0)
+	{		
+		if(strcmp(e->arguments[1], "list") == 0)
 		{
-			if(remoteCmd("infini1", "ls"))
+			if(remoteListe())
+				printf("Erreur, aucune machine connecté en ssh\n");
+		}
+		else if(strcmp(e->arguments[1], "add") == 0)		
+		{	
+			if(remoteAdd(e->arguments[2]))
+				printf("Erreur, impossible de se connecter\n");
+		}
+		else if(strcmp(e->arguments[1], "remove") == 0)
+			remoteRemove();			
+		else
+		{
+			if(remoteCmd(e->arguments[1], e->arguments[2]))
 				printf("Erreur, hote ou commande invalide\n");
 		}
-		else
-			printf("Erreur, vous n'êtes connecté à aucune machine distante\n");
 	}
 	else
 	{	
@@ -214,6 +249,8 @@ void executer_simple(Expression *e, int bg)
 			printf("Erreur\n");
 	}
 }
+
+// Pour rendre le code plus propre à rajouter une fois que les fonctions seront terminées
 
 
 int evaluer_expr(Expression *e)
