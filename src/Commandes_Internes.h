@@ -2,6 +2,7 @@
 #define COMINTERN_H
 #include "Shell.h"
 
+int kill2(int argc, char **argv);
 void exit2();
 int pwd2();
 int hostname2();

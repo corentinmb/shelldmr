@@ -10,9 +10,15 @@
 #include <string.h>
 #include <time.h>
 #include <readline/history.h>
+#include <signal.h>
 // Fonctions internes
 
-
+int kill2(int argc, char **argv)
+{
+		int pid = atoi(argv[2]);
+		int sig = - atoi(argv[1]);
+		return kill(pid,sig);
+}
 
 void exit2()
 {
@@ -22,7 +28,7 @@ void exit2()
 	close(1);
 	fflush(stderr);
 	close(2);
-	
+
 	kill(getpid(), SIGINT);
 }
 
@@ -30,7 +36,7 @@ int pwd2()
 {
 	char buf[256];
 	getcwd(buf, sizeof(buf));
-	
+
 	if(buf == NULL)
 		return -1;
 	else
@@ -45,13 +51,13 @@ int hostname2()
 	FILE *fd = fopen("/etc/hostname", "r");
 	char *buf;
 	size_t len = 0;
-	
+
 	if(getline(&buf, &len, fd) == -1)
 		return -1;
 	else
 	{
 		printf("%s", buf);
-		return 0;	
+		return 0;
 	}
 }
 
@@ -64,7 +70,7 @@ int echo2(char *buf)
 		char *bufFinal;
 		strcpy(bufFinal, buf + 1);
 		//printf("%s prout\n", bufFinal);
-	} 
+	}
 	else
 	{
 		printf("%s\n", buf);
@@ -77,28 +83,28 @@ int date2()
 	char *tabDays[] = {"dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"};
 	char *tabMonths[] = {"janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "otobre", "novembre", "décembre"};
 	char hour[2], min[2], sec[2];
-	
+
 	time_t rawtime;
    	time( &rawtime );
 
    	struct tm tm = *localtime( &rawtime );
-	
+
 	// ces conditions permettent de rajouter le 0 si la valeur est < à 10
 	if(tm.tm_hour < 10)
 		sprintf(hour, "0%d", tm.tm_hour);
 	else
 		sprintf(hour, "%d", tm.tm_hour);
-	
+
 	if(tm.tm_min < 10)
 		sprintf(min, "0%d", tm.tm_min);
 	else
 		sprintf(min, "%d", tm.tm_min);
-		
+
 	if(tm.tm_sec < 10)
 		sprintf(sec, "0%d", tm.tm_sec);
 	else
-		sprintf(sec, "%d", tm.tm_sec);	
-	
+		sprintf(sec, "%d", tm.tm_sec);
+
 	printf("%s %d %s %d, %s:%s:%s (UTC+0100)\n", tabDays[tm.tm_wday], tm.tm_mday, tabMonths[tm.tm_mon], tm.tm_year + 1900, hour, min, sec);
     return 0;
 }
@@ -106,8 +112,8 @@ int date2()
 int history2()
 {
 	using_history();
-	HISTORY_STATE *histoState = history_get_history_state();	
-	
+	HISTORY_STATE *histoState = history_get_history_state();
+
 	int i;
 	for(i = 0; i < histoState->length; i++)
 		printf("%d %s\n", i, (*(histoState->entries + i))->line);
@@ -123,4 +129,3 @@ int cd2(char *path)
 }
 
 // Fin des fonction internes
-

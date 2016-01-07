@@ -29,22 +29,22 @@ int remoteAdd(char *machine)
 {
 	pipe(tab_shell[indice].tube_in);
 	pipe(tab_shell[indice].tube_out);
-	
+
 	if(!fork())
 	{
-		dup2(tab_shell[indice].tube_in[0], 0);	
+		dup2(tab_shell[indice].tube_in[0], 0);
 		dup2(tab_shell[indice].tube_out[1], 1);
-		
+
 		char buf[256];
 		getcwd(buf, sizeof(buf));
 		sprintf(buf, "%s/./Shell", buf);
 		execlp("ssh", "ssh", machine, buf, NULL);
 		return -1;
 	}
-	
+
 	if(!(tab_shell[indice].pid_local_shell = fork()))
 	{
-		dup2(tab_shell[indice].tube_out[0], 0);		
+		dup2(tab_shell[indice].tube_out[0], 0);
 		execlp("./xcat.sh", "./xcat.sh", NULL);
 		return -2;
 	}
@@ -71,30 +71,30 @@ int remoteCmd(char *host, char * cmd)
 {
 
 	int i, found = 0;
-	for(i = 0; i < indice; i++)	
+	for(i = 0; i < indice; i++)
 	{
 		if(strcmp(tab_shell[i].hostname, host) == 0)
 		{
 			sprintf(cmd, "%s\n", cmd);
 			write(tab_shell[i].tube_in[1], cmd, sizeof(cmd));
-			write(tab_shell[i].tube_out[1], cmd, sizeof(cmd));	
+			write(tab_shell[i].tube_out[1], cmd, sizeof(cmd));
 			found =  1;
 		}
 	}
-	
+
 	if(!found)
 		printf("Erreur machine invalide\n");
-	
+
 	return 0;
 }
 
 int remoteRemove()
-{	
+{
 
 	int i, test;
 	for(i = 0; i < indice; i++)
 	{
-		write(tab_shell[i].tube_in[1], "exit\n", sizeof("exit\n")); 
+		write(tab_shell[i].tube_in[1], "exit\n", sizeof("exit\n"));
 		test = kill(tab_shell[i].pid_local_shell, SIGKILL);
 		close(tab_shell[i].tube_in[1]);
 		close(tab_shell[i].tube_in[0]);
@@ -102,23 +102,26 @@ int remoteRemove()
 		close(tab_shell[i].tube_out[0]);
 		printf("test : %d %d\n", test, tab_shell[i].pid_local_shell);
 	}
-		
-	indice = 0;	
+
+	indice = 0;
 	return 0;
 }
 
 int executer_simple(Expression *e)
 {
-	if(strcmp(e->arguments[0], "exit") == 0)
+	if(strcmp(e->arguments[0], "kill") == 0){
+		if(kill2(LongueurListe(e->arguments),e->arguments))
+			printf("Erreur dans la commande kill\n");
+		return 0;
+	}
+	else if(strcmp(e->arguments[0], "exit") == 0)
 		exit2();
 	else if(strcmp(e->arguments[0], "pwd") == 0)
 		return pwd2();
 	else if(strcmp(e->arguments[0], "hostname") == 0)
 		return hostname2();
 	else if(strcmp(e->arguments[0], "echo") == 0)
-	{
-		return echo2(e->arguments[1]);			
-	}
+		return echo2(e->arguments[1]);
 	else if(strcmp(e->arguments[0], "date") == 0)
 		return date2();
 	else if(strcmp(e->arguments[0], "history") == 0)
@@ -126,23 +129,23 @@ int executer_simple(Expression *e)
 	else if(strcmp(e->arguments[0], "cd") == 0)
 		return cd2(e->arguments[1]);
 	else if(strcmp(e->arguments[0], "remote") == 0)
-	{		
+	{
 		if(strcmp(e->arguments[1], "list") == 0)
 		{
 			if(remoteListe())
 				printf("Erreur, aucune machine connecté en ssh\n");
 			return 1;
 		}
-		else if(strcmp(e->arguments[1], "add") == 0)		
+		else if(strcmp(e->arguments[1], "add") == 0)
 		{
-			for(int i=2; i < LongueurListe(e->arguments);i++){	
+			for(int i=2; i < LongueurListe(e->arguments);i++){
 				if(remoteAdd(e->arguments[i]))
 					printf("Erreur, impossible de se connecter\n");
 			}
 			return 2;
 		}
 		else if(strcmp(e->arguments[1], "remove") == 0)
-			return remoteRemove();			
+			return remoteRemove();
 		else if(strcmp(e->arguments[1], "all") == 0)
 		{
 			if(indice != 0)
@@ -163,11 +166,11 @@ int executer_simple(Expression *e)
 		}
 	}
 	else
-	{	
+	{
 		int pid = fork();
-        
+
 		if(pid == 0){
-			execvp(e->arguments[0], e->arguments);	
+			execvp(e->arguments[0], e->arguments);
 		    exit(1);
 		}
 		else if(pid > 0)
@@ -214,7 +217,7 @@ int redirect_i(Expression *e)
     {
         waitpid(pid, &status, 0);
         return (WIFEXITED(status) ? WEXITSTATUS(status) : -1);
-    }        
+    }
 }
 
 int redirect_o(Expression *e)
@@ -232,7 +235,7 @@ int redirect_o(Expression *e)
     {
         waitpid(pid, &status, 0);
         return (WIFEXITED(status) ? WEXITSTATUS(status) : -1);
-    }        
+    }
 }
 
 int redirect_a(Expression *e)
@@ -250,7 +253,7 @@ int redirect_a(Expression *e)
     {
         waitpid(pid, &status, 0);
         return (WIFEXITED(status) ? WEXITSTATUS(status) : -1);
-    }        
+    }
 }
 
 int redirect_e(Expression *e)
@@ -268,7 +271,7 @@ int redirect_e(Expression *e)
     {
         waitpid(pid, &status, 0);
         return (WIFEXITED(status) ? WEXITSTATUS(status) : -1);
-    }        
+    }
 }
 
 int redirect_eo(Expression *e)
@@ -287,7 +290,7 @@ int redirect_eo(Expression *e)
     {
         waitpid(pid, &status, 0);
         return (WIFEXITED(status) ? WEXITSTATUS(status) : -1);
-    }        
+    }
 }
 
 int pipe_expr (Expression *e)
@@ -302,7 +305,7 @@ int pipe_expr (Expression *e)
             dup2(tube[1], STDOUT_FILENO);
             close(tube[1]);
             status = evaluer_expr(e->gauche);
-            exit(status);          
+            exit(status);
         }
         else
         {
@@ -327,7 +330,7 @@ int pipe_expr (Expression *e)
     {
         waitpid(pid, &status, 0);
         return (WIFEXITED(status) ? WEXITSTATUS(status) : -1);
-    }        
+    }
 
 }
 
@@ -368,8 +371,8 @@ int evaluer_expr(Expression *e)
 
   case VIDE :
     break ;
-    
-  case SIMPLE :	
+
+  case SIMPLE :
 	return executer_simple(e);
 	break;
  case BG:
@@ -377,10 +380,10 @@ int evaluer_expr(Expression *e)
     break;
 
   case SOUS_SHELL : return exec_sous_shell(e);
-  case REDIRECTION_I: return redirect_i(e);	
-  case REDIRECTION_O: return redirect_o(e);	
-  case REDIRECTION_A: return redirect_a(e);	
-  case REDIRECTION_E: return redirect_e(e);	
+  case REDIRECTION_I: return redirect_i(e);
+  case REDIRECTION_O: return redirect_o(e);
+  case REDIRECTION_A: return redirect_a(e);
+  case REDIRECTION_E: return redirect_e(e);
   case REDIRECTION_EO : return redirect_eo(e);
     break;
   case PIPE: return pipe_expr(e);
