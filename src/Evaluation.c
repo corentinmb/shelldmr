@@ -355,6 +355,71 @@ int redirect_eo(Expression *e)
     }        
 }
 
+int pipe (Expression *e)
+{
+    int pid,status;
+    if ((pid = fork()) == 0)
+    {
+        int tube[2];
+        int pid_1, pid_2;
+        if ((pid_1 = fork()) == 0)
+        {
+            dup2(tube[1], STDOUT_FILENO);
+            close(tube[1]);
+            status = evaluer_expr(e->gauche);
+            exit(status);          
+        }
+        else
+        {
+            close(tube[1])
+            if ((pid_2 = fork()) = 0)
+            {
+                dup2(tube[0], STDIN_FILENO);
+                close(tube[0]);
+                status = evaluer_expr(e->droite);
+                exit(status);
+            }
+            else
+            {
+                close(tube[0]);
+                waitpid(pid_1, &status, 0);
+                waitpid(pid_2, &status, 0);
+                exit(0);
+            }
+        }
+    }
+    else
+    {
+        waitpid(pid, &status, 0);
+        return (WIFEXITED(status) ? WEXITSTATUS(status) : -1);
+    }        
+
+}
+
+int sequence(Expression *e)
+{
+    evaluer_expr(e->gauche);
+    return evaluer_expr(e->droite);
+}
+
+int sequence_and(Expression *e)
+{
+    int status = evaluer_expr(e->gauche);
+    if ( status == 0)
+        return evaluer_expr(e->droite);
+    else
+        return status;
+}
+
+int sequence_or(Expression *e)
+{
+    int status = evaluer_expr(e->gauche);
+    if ( status == 0)
+        return 0;
+    else
+        return evaluer_expr(e->droite);
+
+}
 
 // Pour rendre le code plus propre à rajouter une fois que les fonctions seront terminées
 
@@ -376,13 +441,17 @@ int evaluer_expr(Expression *e)
   	bg = 1;
   	return evaluer_expr(e->gauche);
     break;
- 
+
   case REDIRECTION_I: return redirect_i(e);	
   case REDIRECTION_O: return redirect_o(e);	
   case REDIRECTION_A: return redirect_a(e);	
   case REDIRECTION_E: return redirect_e(e);	
   case REDIRECTION_EO : return redirect_eo(e);
     break;
+  case PIPE: return pipe(e);
+  case SEQUENCE:
+  case SEQUENCE_ET:
+  case SEQUENCE_OU:
   default :
 	break;
   }
