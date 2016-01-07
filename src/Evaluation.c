@@ -11,8 +11,6 @@
 #include <string.h>
 #include <time.h>
 #include <readline/history.h>
-
-int bg = 0;
 int indice = 0;
 
 struct distant_shell
@@ -223,7 +221,7 @@ int remoteRemove()
 	return 0;
 }
 
-int executer_simple(Expression *e, int bg)
+int executer_simple(Expression *e)
 {
 	if(strcmp(e->arguments[0], "exit") == 0)
 		exit2();
@@ -268,16 +266,15 @@ int executer_simple(Expression *e, int bg)
 	{	
 		int pid = fork();
         
-		if(pid == 0)
+		if(pid == 0){
 			execvp(e->arguments[0], e->arguments);	
+		    exit(1);
+		}
 		else if(pid > 0)
 		{
 		    int status;
-			if(!bg)
-			{
 				waitpid(pid, &status, 0);
 				return (WIFEXITED(status)? WEXITSTATUS(status) : -1);
-		    }
 		}
 		else
 			printf("Erreur\n");
@@ -287,6 +284,19 @@ int executer_simple(Expression *e, int bg)
 
 int exec_sous_shell(Expression *e){
     return evaluer_expr(e->gauche);
+}
+
+int exec_bg(Expression *e){
+    int pid;
+    if ((pid = fork()) == 0){
+        exit(evaluer_expr(e->gauche));
+    }
+    else if (pid > 0 ){
+        return 0;
+    }
+    else {
+        return -1;
+    }
 }
 
 int redirect_i(Expression *e)
@@ -460,12 +470,10 @@ int evaluer_expr(Expression *e)
     break ;
     
   case SIMPLE :	
-	bg = 0;
-	return executer_simple(e, bg);
+	return executer_simple(e);
 	break;
  case BG:
-  	bg = 1;
-  	return evaluer_expr(e->gauche);
+  	return exec_bg(e);
     break;
 
   case SOUS_SHELL : return exec_sous_shell(e);

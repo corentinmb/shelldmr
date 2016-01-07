@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <sys/wait.h>
 
 extern int yyparse_string(char *);
 
@@ -241,6 +242,7 @@ main (int argc, char **argv)
     else {
       /* L'analyse de la ligne de commande a donn� une erreur */
     }
+    waitpid(-1, NULL, WNOHANG);
   }
   return 0;
 }
