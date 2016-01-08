@@ -14,6 +14,9 @@
 
 int indice = 0;
 
+/*
+ * Structure d'un shell distant
+ */
 struct distant_shell
 {
 	int tube_in[2];
@@ -24,7 +27,9 @@ struct distant_shell
 
 struct distant_shell tab_shell[20];
 
-
+/*
+ * Fonction d'ajout d'un shell distant
+ */
 int remoteAdd(char *machine)
 {
 	pipe(tab_shell[indice].tube_in);
@@ -53,6 +58,9 @@ int remoteAdd(char *machine)
 	return 0;
 }
 
+/*
+ * Fonction de listage des shells distants
+ */
 int remoteListe()
 {
 	if(indice != 0)
@@ -67,6 +75,9 @@ int remoteListe()
 		return -1;
 }
 
+/*
+ * Fonction permettant l'envoi de commande vers un shell distant
+ */
 int remoteCmd(char *host, char * cmd)
 {
 
@@ -88,25 +99,29 @@ int remoteCmd(char *host, char * cmd)
 	return 0;
 }
 
+/*
+ * Fonction de suppression des shells distants
+ */
 int remoteRemove()
 {
 
-	int i, test;
+	int i;
 	for(i = 0; i < indice; i++)
 	{
 		write(tab_shell[i].tube_in[1], "exit\n", sizeof("exit\n"));
-		test = kill(tab_shell[i].pid_local_shell, SIGKILL);
 		close(tab_shell[i].tube_in[1]);
 		close(tab_shell[i].tube_in[0]);
 		close(tab_shell[i].tube_out[1]);
 		close(tab_shell[i].tube_out[0]);
-		printf("test : %d %d\n", test, tab_shell[i].pid_local_shell);
 	}
-
+	system("killall xterm"); // Pas la meilleure solution...
 	indice = 0;
 	return 0;
 }
 
+/*
+ * Fonction d'exécution d'une commande simple
+ */
 int executer_simple(Expression *e)
 {
 	if(strcmp(e->arguments[0], "kill") == 0){
@@ -185,10 +200,17 @@ int executer_simple(Expression *e)
 	}
 }
 
+/*
+ * Fonction d'exécution d'un sous-shell
+ */
 int exec_sous_shell(Expression *e){
     return evaluer_expr(e->gauche);
 }
 
+
+/*
+ * Fonction de mise en arrière-plan
+ */
 int exec_bg(Expression *e){
     int pid;
     if ((pid = fork()) == 0){
@@ -202,6 +224,9 @@ int exec_bg(Expression *e){
     }
 }
 
+/*
+ * Fonction de redirection en entrée <
+ */
 int redirect_i(Expression *e)
 {
     int pid,status;
@@ -220,6 +245,9 @@ int redirect_i(Expression *e)
     }
 }
 
+/*
+ * Fonction de redirection en sortie >
+ */
 int redirect_o(Expression *e)
 {
     int pid,status;
@@ -238,6 +266,9 @@ int redirect_o(Expression *e)
     }
 }
 
+/*
+ * Fonction de redirection en sortie en mode APPEND >>
+ */
 int redirect_a(Expression *e)
 {
     int pid,status;
@@ -256,6 +287,9 @@ int redirect_a(Expression *e)
     }
 }
 
+/*
+ * Fonction de redirection sur la sortie d'erreur
+ */
 int redirect_e(Expression *e)
 {
     int pid,status;
@@ -274,6 +308,9 @@ int redirect_e(Expression *e)
     }
 }
 
+/*
+ * Fonction de redirection sur les sorties standard et d'erreur
+ */
 int redirect_eo(Expression *e)
 {
     int pid,status;
@@ -293,6 +330,9 @@ int redirect_eo(Expression *e)
     }
 }
 
+/*
+ * Fonction d'exécution des commandes séparées par un pipe
+ */
 int pipe_expr (Expression *e)
 {
     int pid,status;
@@ -334,12 +374,18 @@ int pipe_expr (Expression *e)
 
 }
 
+/*
+ * Fonction d'exécution des commandes séparées par un point virgule
+ */
 int sequence(Expression *e)
 {
     evaluer_expr(e->gauche);
     return evaluer_expr(e->droite);
 }
 
+/*
+ * Fonction d'exécution des commandes séparées par une double esperluette
+ */
 int sequence_and(Expression *e)
 {
     int status = evaluer_expr(e->gauche);
@@ -349,6 +395,9 @@ int sequence_and(Expression *e)
         return status;
 }
 
+/*
+ * Fonction d'exécution des commandes séparées par un double pipe
+ */
 int sequence_or(Expression *e)
 {
     int status = evaluer_expr(e->gauche);
@@ -359,8 +408,9 @@ int sequence_or(Expression *e)
 
 }
 
-// Pour rendre le code plus propre à rajouter une fois que les fonctions seront terminées
-
+/*
+ * Fonction d'évaluation de l'expression
+ */
 int evaluer_expr(Expression *e)
 {
 

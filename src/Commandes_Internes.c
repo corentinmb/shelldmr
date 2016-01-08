@@ -11,8 +11,12 @@
 #include <time.h>
 #include <readline/history.h>
 #include <signal.h>
-// Fonctions internes
 
+
+
+/*
+ * Fonction clone de kill
+ */
 int kill2(int argc, char **argv)
 {
 		int pid = atoi(argv[2]);
@@ -20,6 +24,9 @@ int kill2(int argc, char **argv)
 		return kill(pid,sig);
 }
 
+/*
+ * Fonction clone de exit
+ */
 void exit2()
 {
 	fflush(stdin);
@@ -32,6 +39,9 @@ void exit2()
 	kill(getpid(), SIGINT);
 }
 
+/*
+ * Fonction clone de pwd
+ */
 int pwd2()
 {
 	char buf[256];
@@ -46,6 +56,9 @@ int pwd2()
 		}
 }
 
+/*
+ * Fonction clone de hostname
+ */
 int hostname2()
 {
 	FILE *fd = fopen("/etc/hostname", "r");
@@ -61,15 +74,16 @@ int hostname2()
 	}
 }
 
-// problème lors de l'input utilisateur, les "" ou '' sont enlevé par le code du prof
 
+/*
+ * Fonction clone de echo
+ */
 int echo2(char *buf)
 {
 	if( ( buf[0] == '"'  && buf[strlen(buf) - 1] == '"' ) || ( buf[0] == '\'' && buf[strlen(buf) - 1] == '"' ) )
 	{
 		char *bufFinal;
 		strcpy(bufFinal, buf + 1);
-		//printf("%s prout\n", bufFinal);
 	}
 	else
 	{
@@ -78,6 +92,9 @@ int echo2(char *buf)
 	return 0;
 }
 
+/*
+ * Fonction clone de date
+ */
 int date2()
 {
 	char *tabDays[] = {"dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"};
@@ -109,6 +126,9 @@ int date2()
     return 0;
 }
 
+/*
+ * Fonction clone de history
+ */
 int history2()
 {
 	using_history();
@@ -120,6 +140,9 @@ int history2()
     return 0;
 }
 
+/*
+ * Fonction clone de cd
+ */
 int cd2(char *path)
 {
 	if(chdir(path))
@@ -127,5 +150,3 @@ int cd2(char *path)
 	else
 		return 0;
 }
-
-// Fin des fonction internes

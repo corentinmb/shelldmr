@@ -219,7 +219,7 @@ my_yyparse(void)
 int
 main (int argc, char **argv)
 {
-
+  system("clear");
   // faire en sorte qu'interactive_mode = 0 lorsque le shell est distant
 
   if (interactive_mode)
@@ -233,7 +233,7 @@ main (int argc, char **argv)
 
   while (1){
     if (my_yyparse () == 0){  /* L'analyse a abouti */
-      afficher_expr(ExpressionAnalysee);
+      //afficher_expr(ExpressionAnalysee);
       if (evaluer_expr(ExpressionAnalysee) == 0){
         fflush(stdout);
         expression_free(ExpressionAnalysee);
