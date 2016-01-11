@@ -340,6 +340,7 @@ int pipe_expr (Expression *e)
     {
         int tube[2];
         int pid_1, pid_2;
+        pipe(tube);
         if ((pid_1 = fork()) == 0)
         {
             dup2(tube[1], STDOUT_FILENO);
