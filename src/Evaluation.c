@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/prctl.h>
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -183,7 +184,7 @@ int executer_simple(Expression *e)
 	else
 	{
 		int pid = fork();
-
+        prctl(PR_SET_PDEATHSIG, SIGHUP);
 		if(pid == 0){
 			execvp(e->arguments[0], e->arguments);
 		    exit(1);
